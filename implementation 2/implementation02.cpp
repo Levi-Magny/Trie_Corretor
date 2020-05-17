@@ -3,6 +3,8 @@
 #include <string>
 #include <ctype.h>
 #include <vector>
+#include <windows.h>
+#include <limits>
 #include "TrieNo.h"
 
 using namespace std;
@@ -64,21 +66,21 @@ void Trie::inserir(string key){
         }
 }
 void Trie::inserir(string key, int indK, Node* aux, Node* &prevNode){
-    if(aux->is_leaf){//se o nÛ È uma folha
-        if(aux->word == key){ // se a folha È igual ‡ chave
+    if(aux->is_leaf){//se o n√≥ √© uma folha
+        if(aux->word == key){ // se a folha √© igual √† chave
 
             return;
         }
-    }else{//se o nÛ n„o È uma folha
+    }else{//se o n√≥ n√£o √© uma folha
         int index = indice(key,indK);
-        if(aux->Character[index]==NULL){//se ele n„o tem filho com esse caractere
+        if(aux->Character[index]==NULL){//se ele n√£o tem filho com esse caractere
             if(index == 27){//se for o final da palavra (olhar a implementacao da funcao 'indice()')
                 Node* a2;
                 createLeaf(key,a2);
                 aux->Character[index] = a2;
                 aux->is_endWord = true;
                 aux->num_prefix +=1;
-            }else{//se n„o for final da palavra
+            }else{//se n√£o for final da palavra
                 Node* a2;
                 createLeaf(key,a2);
                 aux->Character[index] = a2;
@@ -104,62 +106,98 @@ void Trie::inserir(string key, int indK, Node* aux, Node* &prevNode){
             aux->Character[indice(key,i)] = a2;
             aux->num_prefix +=1;
 
-        }else{//aponta para um nÛ interno
+        }else{//aponta para um n√≥ interno
                 inserir(key, indK+1, aux->Character[index], aux);
         }
     }
 
 }
 
-void Trie::pesquisa(string key){
+void Trie::pesquisa(vector<string> &Vet, string key){
     if(Root==NULL){
         cout<<"\nA arvore nao existe\n";
         return;
     }
     else{
-        pesquisa(key, 0, Root);
+        pesquisa(Vet, key, 0, Root);
     }
 
 }
-void Trie::pesquisa(string key, int indK, Node* &aux){
-    cout<<aux;
+void Trie::pesquisa(vector<string> &Vet, string key, int indK, Node* &aux){
+    //cout<<aux;
     if(aux->is_leaf){ // Se for folha
         if(aux->word == key){
-            cout<<"\n\nA palavra '"<<key<<"' existe\n";
             return;
         }
         int index = indice(key,indK);
         if(aux->Character[indK]==NULL){
-            cout<<"\n\nA palavra '"<<key<<"' nao existe\n";
+            sugest(Vet, aux, key.length());
+            if(Vet.empty())
+                sugest(Vet, aux, key.length()+2);
             return;
         }else {
-            pesquisa(key,indK+1,aux->Character[index]);
+            pesquisa(Vet,key,indK+1,aux->Character[index]);
+            if(Vet.size()>0 && Vet.size()<8)
+                sugest(Vet, aux, key.length());
         }
     }else{ // se nao for folha
         int index = indice(key,indK);
-        cout<<"\nnao folha"<<endl;
+        //cout<<"\nnao folha"<<endl;
         if(aux->Character[index]==NULL){
-            cout<<"\n\nA palavra '"<<key<<"' nao existe\n";
+            sugest(Vet, aux, key.length());
+            if(Vet.empty())
+                sugest(Vet, aux, key.length()+2);
             return;
-            cout<<"cannot show\n";
         }else{
-            pesquisa(key,indK+1,aux->Character[index]);
+            pesquisa(Vet,key,indK+1,aux->Character[index]);
+            if(Vet.size()>0 && Vet.size()<8)
+                sugest(Vet, aux, key.length());
         }
     }
 }
 
+bool Trie::sugest(vector<string> &Vet, Node* &aux, int tam){
+    if(aux->is_leaf){//se o n√≥ √© folha
+        Vet.push_back(aux->word);
+        return true;
+    }else{ //se o n√≥ √© interno
+        for(int i = 0; i<28; i++){
+            if(Vet.size() == 8) return true;
+            if(aux->Character[i]!=NULL){
+                if(aux->Character[i]->is_leaf){
+                    if(aux->Character[i]->word.length() <= tam){
+                        Vet.push_back(aux->Character[i]->word);
+                    }
+                }else{
+                    sugest(Vet, aux->Character[i], tam);
+                }
+            }
+        }//fecha o for
+    }
+}
+
+void gotoxy(int, int);
 void maiuscula(string &);
 bool montaArvore(Trie &);
+void menu(vector<string> &, string);
+void mostraS(vector<string> &);
+void writeText(string);
+
 
 int main(){
     Trie Arv;
-    string option, word;
+    vector<string> vet;
+    string option, word, n;
 
     if(!montaArvore(Arv))
-        cout<<"Erro ao montar ¡rvore";
+        cout<<"Erro ao montar √Årvore";
 
-    fstream myfile ("entrada.txt");
+    fstream myfile;
+    myfile.open("saida.txt", ios::out);
+    myfile<<"";
+    myfile.close();
 
+    myfile.open("entrada.txt");
     if(myfile.is_open()){
         while(!myfile.eof()){
             string y;
@@ -169,32 +207,28 @@ int main(){
                 if(word[j] == ' '){
                     maiuscula(y);
                     y += '#';
-                    Arv.pesquisa(y);
+                    Arv.pesquisa(vet,y);
+                    n = y.substr(0,y.length()-1);
+                    if(!vet.empty())
+                        menu(vet, n);
+                    else
+                        writeText(n);
                     y = "";
                 }else{
                     y += word[j];
                 }
+                vet.clear();
             }//close for
         }//close myfile.eof()
         myfile.close();
     }else{
         cout<<"Erro ao abrir arquivo\n";
     }
-
-    cout<<"\n_____Our_Trie_Tree_____\n";
-    cout<<"\ndigite 'n.' quando cansar\n\n";
-    int kk;
-    while(option != "n.#"){
-        cout<<"Entre com a pesquisa(sem '#')";
-        cin>>option;
-        maiuscula(option);
-        option += '#';
-        Arv.pesquisa(option);
-    }
-    Arv.deleteTree();
-    Arv.pesquisa("carro#");
+gotoxy(1,20);
 return 0;
 }
+
+
 
 void maiuscula (string &palavra){
     int i=0;
@@ -223,25 +257,69 @@ bool montaArvore(Trie &A){
     }
 }
 
+void mostraS(vector<string> &V){
+    string M;
+    int i=1,x=40,y=3;
+    gotoxy(x,y);
+    y+=2;
+    cout<<"| Ou digite o numero da sujestao desejada:";
+    for(auto c: V){
+        gotoxy(x,y);
+        M = c.substr(0,c.length()-1);
+        cout<<"| "<<i++<<"_ "<<M<<endl;
+        y+=1;
+    }
+}
+void menu(vector<string> &V, string P){
+    system("cls");
+    int op,s=1;
+    string palavra;
+    gotoxy(27,1);
+    cout<<"A palavra '"<<P<<"' nao consta!\n";
+    gotoxy(20,2);
+    cout<<"===========================================";
+    cout<<"\nDigite [10] para escrever uma palavra";
+    mostraS(V);
+    gotoxy(1,5);
+    while(s==1){
+        try{
 
-    /*Trie Arv;
+            cout<<"Escolha... ";
+            cin>>op;
+            if(cin.fail()){
+                throw 'a';
+            }else
+                s=0;
 
-    Arv.pesquisa("carro#");
+        }catch(...){
 
-    Arv.inserir("carro#");
-    cout<<"\ninseriu -carro-\n";
-    Arv.inserir("cama#");
-    cout<<"inseriu -cama-\n";
-    Arv.inserir("preto#");
-    cout<<"inseriu -preto-\n";
-    Arv.inserir("lata#");
-    cout<<"inseriu -lata-\n";
-    Arv.inserir("prata#");
-    cout<<"inseriu -prata-\n";
-    Arv.inserir("campo#");
-    cout<<"inseriu -campo-\n";
-    Arv.inserir("leite#");
-    cout<<"inseriu -leite-\n";
-    Arv.inserir("lataria#");
-    cout<<"inseriu -lataria-\n";
-*/
+            cin.clear(); // Clear error flags
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout<<"Value must be numeric\n";
+        }
+
+    }
+    if(op == 10){
+        cout<<"Insira a palavra\n";
+        cin>>palavra;
+        writeText(palavra);
+    }else{
+        string a = V[op-1].substr(0,V[op-1].length()-1);
+        writeText(a);
+    }
+}
+void writeText(string a){
+    fstream myfile;
+    myfile.open("saida.txt", fstream::app);
+
+    if(myfile.is_open()){
+        myfile << a << " ";
+    }else{
+        cout<<"Falha ao abrir saida.txt";
+    }
+}
+void gotoxy(int x, int y){//posicionar cursor na tela
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),(COORD){
+        x-1,y-1
+    });
+}
