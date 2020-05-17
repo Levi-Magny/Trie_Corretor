@@ -22,7 +22,7 @@ private:
     };
     void inserir(string key, int indK, Node* aux, Node* &prevNode);
     void deleteTree(Node* aux);
-    void pesquisa(string key, int indK, Node* &aux);
+    void pesquisa(vector<string> &Vet, string key, int indK, Node* &aux);
     Node* Root;
 public:
     Trie(){
@@ -32,9 +32,10 @@ public:
         deleteTree();
     }
     void inserir(string key);
-    void pesquisa(string key);
+    void pesquisa(vector<string> &Vet, string key);
     string valRoot(){return Root->word;}
     void createLeaf(string key, Node* &N);
     int indice(string key, int i);
+    bool sugest(vector<string> &Vet, Node* &aux, int tam);
     void deleteTree();
 };
